@@ -7,6 +7,9 @@ const SITE = {
   // お問い合わせ先（Googleフォームや X のURLなど）。空なら「準備中」と表示
   contactUrl: "",
   contactLabel: "お問い合わせフォーム",
+  // BOOTHの商品ページ
+  boothUrl: "https://yupoker.booth.pm/items/9135566",
+  boothLabel: "📄 印刷用 10ゲーム早見表＋ルールカード（BOOTH・500円）",
 };
 /* ================================================= */
 
@@ -16,7 +19,10 @@ const SITE = {
   const tip = SITE.tipUrl
     ? `<a class="tipbtn" href="${SITE.tipUrl}" target="_blank" rel="noopener">${SITE.tipLabel}</a>`
     : "";
-  f.innerHTML = `${tip}
+  const booth = SITE.boothUrl
+    ? `<a class="boothbtn" href="${SITE.boothUrl}" target="_blank" rel="noopener">${SITE.boothLabel}</a>`
+    : "";
+  f.innerHTML = `${booth}${tip}
   <nav class="footnav">
     <a href="index.html">タイマー</a>
     <a href="howto.html">使い方</a>
