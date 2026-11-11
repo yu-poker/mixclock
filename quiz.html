@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ロー判定クイズ（ラズ・2-7・バドゥーギ）｜Mix Clock 10</title>
+<meta name="description" content="どっちのローが強い？ラズ（A-5ロー）、2-7ロー、バドゥーギの手の強さをスマホで練習できる無料クイズ。ミックスゲームの練習に。">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=IBM+Plex+Mono:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<link rel="stylesheet" href="site.css">
+<style>
+.modes{display:flex;gap:6px;margin:14px 0 10px;flex-wrap:wrap}
+.modes button{flex:1;min-width:100px;font:inherit;font-weight:700;padding:10px 6px;border-radius:999px;border:1px solid #2f5a4c;background:transparent;color:#9db5a9;cursor:pointer}
+.modes button[aria-pressed="true"]{background:#cfa955;color:#1d1505;border-color:#cfa955}
+.rule{font-size:.85rem;color:#9db5a9;min-height:2.6em;margin:0 0 10px}
+.q{font-size:1.15rem;font-weight:700;margin:4px 0 12px;text-align:center}
+.hand{background:#12302a;border:2px solid #2f5a4c;border-radius:16px;padding:12px;margin-bottom:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;cursor:pointer;transition:border-color .15s}
+.hand:hover{border-color:#cfa955}
+.hand .lab{font-family:"Bodoni Moda",serif;font-size:1.6rem;font-weight:700;width:28px;text-align:center;color:#cfa955}
+.cards{display:flex;gap:6px;flex-wrap:nowrap}
+.c{width:46px;height:64px;border-radius:7px;background:#fdfbf6;color:#1b1f1d;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"IBM Plex Mono",monospace;font-weight:600;line-height:1;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.c b{font-size:1.25rem}.c i{font-style:normal;font-size:1.15rem;margin-top:3px}
+.c.red{color:#c0392b}
+.hand.win{border-color:#3ddc84;background:#173d2c}
+.hand.lose{opacity:.55}
+.why{flex-basis:100%;font-size:.85rem;color:#ece6d6;padding-left:38px}.why:empty{display:none}
+.tiebtn{display:block;width:100%;font:inherit;font-weight:700;padding:12px;border-radius:12px;border:1px solid #2f5a4c;background:transparent;color:#9db5a9;cursor:pointer;margin-bottom:12px}
+.result{min-height:3.2em;text-align:center;font-weight:700;font-size:1.05rem}
+.result.ok{color:#3ddc84}.result.ng{color:#e8998a}
+.next{display:block;width:100%;font:inherit;font-weight:700;padding:14px;border-radius:12px;border:0;background:#cfa955;color:#1d1505;cursor:pointer;font-size:1.05rem}
+.score{display:flex;justify-content:center;gap:18px;margin:12px 0 0;font-size:.9rem;color:#9db5a9}
+.score b{color:#ece6d6;font-family:"IBM Plex Mono",monospace;font-size:1.1rem}
+@media (max-width:380px){.c{width:40px;height:56px}.c b{font-size:1.05rem}}
+</style>
+</head>
+<body class="doc">
+<main>
+<a class="back" href="index.html">← タイマーに戻る</a>
+<h1>ロー判定クイズ</h1>
+<p class="lead">どっちの手が強い？ ラズ・2-7・バドゥーギの「ロー」の数え方を、遊びながら覚えよう。強いと思う方の手をタップ。</p>
+
+<div class="modes" role="group" aria-label="モード">
+  <button data-m="a5">A-5ロー<br><small>ラズ</small></button>
+  <button data-m="27">2-7ロー<br><small>2-7ドロー</small></button>
+  <button data-m="badugi">バドゥーギ</button>
+</div>
+<p class="rule" id="rule"></p>
+
+<p class="q">強いのはどっち？</p>
+<div class="hand" id="hA" data-pick="-1"><span class="lab">A</span><div class="cards" id="cA"></div><span class="why" id="wA"></span></div>
+<div class="hand" id="hB" data-pick="1"><span class="lab">B</span><div class="cards" id="cB"></div><span class="why" id="wB"></span></div>
+<button class="tiebtn" id="tie" data-pick="0">引き分け</button>
+<div class="result" id="res"></div>
+<button class="next" id="next" hidden>次の問題</button>
+<div class="score"><span>正解 <b id="sOk">0</b></span><span>連続 <b id="sStreak">0</b></span><span>最高連続 <b id="sBest">0</b></span></div>
+
+<h2>数え方のおさらい</h2>
+<ul>
+<li><b>A-5ロー（ラズ）</b>：Aはいちばん小さい。ストレート・フラッシュは無視。大きい順に並べて、いちばん大きいカードが小さい方が勝ち。</li>
+<li><b>2-7ロー</b>：Aはいちばん大きい（悪い）。ストレート・フラッシュは役になる＝悪い手。最強は7-5-4-3-2。</li>
+<li><b>バドゥーギ</b>：数字もスートもかぶらないカードだけを数える。枚数が多い方が勝ち、同じ枚数なら大きいカードが小さい方が勝ち。</li>
+</ul>
+<p>くわしくは<a href="rules.html">10ゲームのルール</a>へ。</p>
+</main>
+<footer id="sitefoot"></footer>
+<script src="quiz-engine.js"></script>
+<script>
+const RULES={a5:'Aはいちばん小さい（良い）カード。ストレートとフラッシュは関係なし。',
+ '27':'Aはいちばん大きい（悪い）カード。ストレートとフラッシュは悪い手になる。',
+ badugi:'4枚から、数字もスートもかぶらないカードだけを数える。枚数が多い方が強い。'};
+const SUIT={s:'♠',h:'♥',d:'♦',c:'♣'};
+const $=id=>document.getElementById(id);
+let mode='a5',cur=null,done=false;
+let st={ok:0,streak:0,best:0};
+try{st=Object.assign(st,JSON.parse(localStorage.getItem('lowquiz')||'{}'));}catch(e){}
+try{const m=localStorage.getItem('lowquiz-mode');if(m&&RULES[m])mode=m;}catch(e){}
+const save=()=>{try{localStorage.setItem('lowquiz',JSON.stringify(st));localStorage.setItem('lowquiz-mode',mode);}catch(e){}};
+const cardHTML=c=>`<div class="c${c.s==='h'||c.s==='d'?' red':''}"><b>${LowQuiz.label(c.r)}</b><i>${SUIT[c.s]}</i></div>`;
+function sortForMode(h){return [...h].sort((x,y)=>{const v=r=>mode==='27'?r:(r===14?1:r);return v(y.r)-v(x.r);});}
+function newQ(){
+  cur=LowQuiz.deal(mode);done=false;
+  $('cA').innerHTML=sortForMode(cur.a).map(cardHTML).join('');
+  $('cB').innerHTML=sortForMode(cur.b).map(cardHTML).join('');
+  $('wA').textContent=$('wB').textContent='';
+  ['hA','hB'].forEach(id=>$(id).classList.remove('win','lose'));
+  $('res').textContent='';$('res').className='result';$('next').hidden=true;
+}
+function answer(pick){
+  if(done)return;done=true;
+  const r=LowQuiz.compare(mode,cur.a,cur.b);
+  const ok=pick===r;
+  st.ok+=ok?1:0;st.streak=ok?st.streak+1:0;st.best=Math.max(st.best,st.streak);save();
+  $('wA').textContent=LowQuiz.describe(mode,cur.a);$('wB').textContent=LowQuiz.describe(mode,cur.b);
+  if(r!==0){$(r<0?'hA':'hB').classList.add('win');$(r<0?'hB':'hA').classList.add('lose');}
+  $('res').textContent=(ok?'正解！ ':'ざんねん… ')+(r===0?'引き分けでした':`${r<0?'A':'B'}の勝ち`);
+  $('res').className='result '+(ok?'ok':'ng');
+  $('next').hidden=false;renderScore();
+}
+function renderScore(){$('sOk').textContent=st.ok;$('sStreak').textContent=st.streak;$('sBest').textContent=st.best;}
+function setMode(m){mode=m;save();document.querySelectorAll('.modes button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));$('rule').textContent=RULES[m];newQ();}
+document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+[$('hA'),$('hB'),$('tie')].forEach(el=>el.onclick=()=>answer(+el.dataset.pick));
+$('next').onclick=newQ;
+renderScore();setMode(mode);
+</script>
+<script src="site.js"></script>
+</body>
+</html>

@@ -27,6 +27,7 @@ const SITE = {
     <a href="index.html">タイマー</a>
     <a href="howto.html">使い方</a>
     <a href="rules.html">10ゲームのルール</a>
+    <a href="quiz.html">ロー判定クイズ</a>
     <a href="about.html">運営者情報・お問い合わせ</a>
     <a href="privacy.html">プライバシーポリシー</a>
   </nav>
