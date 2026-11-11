@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mix Clock 10｜MIXゲーム用ブラインドタイマー（無料）</title>
+<meta name="description" content="10ゲームミックス対応の無料ポーカータイマー。ハンド数・時間・レベルでゲームを自動切り替え。5・25・100点チップだけで払える額を自動計算。リング・トーナメント両対応。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="site.css">
+<style>
+:root{
+  --room:#0c1916;--felt:#173a30;--panel:#12302a;--line:#2f5a4c;--text:#ece6d6;--muted:#9db5a9;
+  --brass:#cfa955;--brass-ink:#1d1505;--chip5:#e9e3d3;--chip25:#3f7fbf;--chip100:#2b2b2b;--alert:#e8998a;
+  --f-display:"Bodoni Moda","Times New Roman",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--room);color:var(--text);margin:0}
+body{font-family:var(--f-body);line-height:1.5;padding:calc(16px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 20px}
+h1{font-family:var(--f-display);font-size:2rem;line-height:1;margin:0;font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{font:inherit;font-size:.9rem;font-weight:700;border:0;border-radius:999px;padding:6px 16px;background:transparent;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--brass);color:var(--brass-ink)}
+.clock{background:radial-gradient(ellipse at 50% 30%,#21503f,var(--felt) 70%);border:1px solid var(--line);border-radius:24px;padding:clamp(18px,4vw,40px);display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.clock.break{background:radial-gradient(ellipse at 50% 30%,#3a3320,#262113 70%)}
+.eyebrow{font-size:.8rem;letter-spacing:.16em;color:var(--muted);font-variant-numeric:tabular-nums}
+.game{font-family:var(--f-display);font-weight:700;font-size:clamp(2.6rem,9vw,5.5rem);line-height:1;text-wrap:balance}
+.kind{font-size:.85rem;color:var(--brass);letter-spacing:.06em}
+.struct{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 28px;margin-top:4px}
+.struct div{display:flex;flex-direction:column;align-items:center}
+.struct span{font-size:.75rem;color:var(--muted);letter-spacing:.08em}
+.struct b{font-family:var(--f-mono);font-weight:600;font-size:clamp(1.5rem,5vw,2.6rem);line-height:1.15;font-variant-numeric:tabular-nums}
+.time{font-family:var(--f-mono);font-weight:500;font-size:clamp(4rem,19vw,11rem);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:6px}
+.time.warn{color:var(--alert)}
+.time.paused{opacity:.55}
+.next{font-size:.95rem;color:var(--muted);text-wrap:balance}
+.next b{color:var(--text);font-weight:700}
+.hands{display:flex;align-items:center;gap:10px;font-size:1rem;flex-wrap:wrap;justify-content:center;font-variant-numeric:tabular-nums}
+.hands b{font-family:var(--f-mono);font-size:1.6rem}
+.pips{display:flex;gap:6px;flex-wrap:wrap}
+.pip{width:14px;height:14px;border-radius:50%;border:2px solid var(--brass)}
+.pip.on{background:var(--brass)}
+.notice{font-size:.9rem;color:var(--brass);min-height:1.4em;text-wrap:balance}
+.controls{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.btn{font:inherit;font-weight:700;padding:11px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;min-width:84px}
+.btn:hover{border-color:var(--brass)}
+.btn.primary{background:var(--brass);color:var(--brass-ink);border-color:var(--brass);min-width:140px}
+.btn.hand{background:var(--felt);border-color:var(--brass);min-width:170px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.keys{font-size:.78rem;color:var(--muted);text-align:center;margin:0}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+h2{font-family:var(--f-display);font-size:1.25rem;margin:0;font-weight:700}
+.sub{font-size:.8rem;color:var(--muted);margin:0}
+.games{display:flex;flex-direction:column;gap:4px}
+.grow{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}
+.grow:last-child{border-bottom:0}
+.grow label{flex:1;display:flex;align-items:center;gap:8px;cursor:pointer}
+.grow small{color:var(--muted)}
+.mini{font:inherit;width:30px;height:28px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+.mini:disabled{opacity:.3}
+input[type=checkbox]{accent-color:var(--brass);width:16px;height:16px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted)}
+select,input[type=number]{font:inherit;font-family:var(--f-mono);font-size:.95rem;color:var(--text);background:var(--room);border:1px solid var(--line);border-radius:8px;padding:7px 8px;width:100%}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.06em;color:var(--muted);font-weight:500}
+td.num{font-family:var(--f-mono)}
+tr.cur td{background:#1d4337}
+tr.brk td{color:var(--brass)}
+td.play{color:var(--text);font-weight:700}
+td.idle{color:var(--muted)}
+.tag{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:999px;border:1px solid var(--brass);color:var(--brass);margin-left:6px}
+.ring input[type=number]{width:84px}
+.chips{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px}
+.dot{width:16px;height:16px;border-radius:50%;border:3px dashed rgba(255,255,255,.55)}
+.d5{background:var(--chip5);border-color:rgba(0,0,0,.25)}.d25{background:var(--chip25)}.d100{background:var(--chip100)}
+.chip.gone{text-decoration:line-through;opacity:.5}
+.intro{font-size:.85rem;color:var(--muted);margin:0}
+.intro a{color:var(--brass)}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){.controls .btn{flex:1 1 30%;min-width:0;padding:11px 6px}.controls .btn.primary{flex-basis:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mix Clock 10</h1>
+    <div class="seg" role="group" aria-label="モード">
+      <button id="m-tour" data-mode="tour">トーナメント</button>
+      <button id="m-ring" data-mode="ring">リング</button>
+    </div>
+  </header>
+  <p class="intro">10ゲームミックス対応の無料ポーカータイマー。はじめての方は<a href="howto.html">使い方</a>と<a href="rules.html">10ゲームのルール</a>をどうぞ。</p>
+
+  <section class="clock" id="clock" aria-live="polite">
+    <div class="eyebrow" id="eyebrow"></div>
+    <div class="game" id="game"></div>
+    <div class="kind" id="kind"></div>
+    <div class="hands" id="hands" hidden></div>
+    <div class="struct" id="struct"></div>
+    <div class="time paused" id="time">20:00</div>
+    <div class="next" id="next"></div>
+    <div class="notice" id="notice"></div>
+  </section>
+
+  <div class="controls">
+    <button class="btn primary" id="b-run">スタート</button>
+    <button class="btn hand" id="b-hand" hidden>ハンド終了 +1</button>
+    <button class="btn" id="b-handundo" hidden>1ハンド戻す</button>
+    <button class="btn" id="b-minus">−1分</button>
+    <button class="btn" id="b-plus">+1分</button>
+    <button class="btn" id="b-prev">前のレベル</button>
+    <button class="btn" id="b-next">次のレベル</button>
+    <button class="btn" id="b-game">次のゲームへ</button>
+    <button class="btn" id="b-reset">リセット</button>
+    <button class="btn" id="b-full">全画面</button>
+  </div>
+  <p class="keys">スペース: スタート/一時停止 ・ ← →: レベル移動 ・ G: 次のゲーム ・ H: ハンド終了</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>ゲームと順番</h2>
+      <p class="sub">チェックしたゲームを上から順に回します。</p>
+      <button class="btn" id="b-ten">10ゲームミックス(標準の順番)に戻す</button>
+      <div class="games" id="games"></div>
+      <div class="chips" id="chips"></div>
+    </section>
+    <section class="card" id="setup"></section>
+  </div>
+
+  <section class="card">
+    <h2 id="sheet-title">ストラクチャー表</h2>
+    <p class="sub" id="sheet-sub"></p>
+    <div class="tablewrap" id="sheet"></div>
+  </section>
+</div>
+<footer id="sitefoot"></footer>
+
+<script>
+const GAMES={
+  TD27:{name:'2-7 Triple Draw',type:'lim',kind:'リミット'},
+  LHE:{name:"Limit Hold'em",type:'lim',kind:'リミット'},
+  O8:{name:'Omaha Hi-Lo',type:'lim',kind:'リミット'},
+  RAZZ:{name:'Razz',type:'stud',kind:'リミット'},
+  STUD:{name:'Stud',type:'stud',kind:'リミット'},
+  STUD8:{name:'Stud Hi-Lo',type:'stud',kind:'リミット'},
+  NLH:{name:"NL Hold'em",type:'nl',kind:'ノーリミット'},
+  PLO:{name:'PLO',type:'pl',kind:'ポットリミット'},
+  SD27:{name:'2-7 Single Draw',type:'nl',kind:'ノーリミット'},
+  BADUGI:{name:'Badugi',type:'lim',kind:'リミット'},
+};
+const TEN=['TD27','LHE','O8','RAZZ','STUD','STUD8','NLH','PLO','SD27','BADUGI'];
+const FIELDS={nl:[['sb','SB'],['bb','BB']],pl:[['sb','SB'],['bb','BB']],lim:[['sb','SB'],['bb','BB'],['lo','スモールベット'],['hi','ビッグベット']],stud:[['ante','アンテ'],['bi','ブリングイン'],['lo','スモールベット'],['hi','ビッグベット']]};
+const LADDER=[10,20,30,40,60,80,100,150,200,300,400,500,600,800,1000,1200,1500,2000,2500,3000,4000,5000,6000,8000,10000,12000,15000,20000];
+const LEVELS=24;
+const STUD_BI10={RAZZ:{bi:10},STUD:{bi:10},STUD8:{bi:10}};
+const DEF={mode:'ring',order:[...TEN],on:[...TEN],
+  ringL:20,ringRot:'hands',ringRotMin:20,ringHands:8,custom:structuredClone(STUD_BI10),
+  tourStartL:20,lvlMin:20,breakEvery:4,breakMin:10,tourRot:'level',tourRotMin:10,tourHands:8};
+
+let st=load('mixclock10-settings',DEF);
+let S=load('mixclock10-state',{pos:0,remain:null,running:false,last:0,gameIdx:0,gameRemain:null,gameElapsed:0,warned:false,handCount:0});
+for(const g of Object.keys(GAMES))if(!st.order.includes(g))st.order.push(g);
+st.order=st.order.filter(g=>GAMES[g]);
+function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v?{...structuredClone(d),...v}:structuredClone(d);}catch(e){return structuredClone(d);}}
+function save(){try{localStorage.setItem('mixclock10-settings',JSON.stringify(st));localStorage.setItem('mixclock10-state',JSON.stringify(S));}catch(e){}}
+
+/* amounts: everything lands on chips you actually have (5 / 25 / 100) */
+const unitOf=v=>v<100?5:v<10000?25:100;
+function nice(v){const u=unitOf(v);return Math.max(5,Math.round(v/u)*u);}
+function sbOf(bb){const h=bb/2;for(const u of[100,25,5])if(h%u===0)return Math.max(5,h);for(const u of[100,25,5])if(bb%u===0){const f=Math.floor(h/u)*u;if(f>0)return f;}return 5;}
+// L = small bet of the limit games. NL/PL blinds run at L/4 and L/2, stud ante ≈ 15–25% and bring-in ≈ 25–50% of L.
+function auto(type,L){
+  if(type==='nl'||type==='pl'){const bb=nice(L/2);return{sb:sbOf(bb),bb};}
+  if(type==='lim'){const bb=nice(L);return{sb:sbOf(bb),bb,lo:bb,hi:bb*2};}
+  const r=v=>L>=100?Math.max(25,Math.round(v/25)*25):nice(v);const ante=r(L*.15);return{ante,bi:Math.max(ante,r(L*.25)),lo:nice(L),hi:nice(L)*2};
+}
+function structOf(g,L,ring){const t=GAMES[g].type;const a=auto(t,L);return ring&&st.custom[g]?{...a,...st.custom[g]}:a;}
+function cells(g,s){
+  const t=GAMES[g].type;
+  if(t==='nl'||t==='pl')return[['ブラインド',`${s.sb}/${s.bb}`]];
+  if(t==='lim')return[['ブラインド',`${s.sb}/${s.bb}`],['リミット',`${s.lo}/${s.hi}`]];
+  return[['アンテ',s.ante],['ブリングイン',s.bi],['リミット',`${s.lo}/${s.hi}`]];
+}
+const short=(g,s)=>cells(g,s).map(([k,v])=>GAMES[g].type==='stud'&&k!=='リミット'?`${k[0]==='ア'?'A':'BI'} ${v}`:v).join(' ・ ');
+const vals=s=>Object.values(s);
+const games=()=>st.order.filter(g=>st.on.includes(g));
+
+/* tournament timeline */
+function seq(){
+  const out=[];let li=Math.max(0,LADDER.indexOf(+st.tourStartL));
+  for(let n=1;n<=LEVELS;n++){
+    out.push({kind:'lv',n,L:LADDER[Math.min(li+n-1,LADDER.length-1)],ms:st.lvlMin*60000});
+    if(st.breakEvery>0&&n%st.breakEvery===0&&n<LEVELS)out.push({kind:'br',ms:st.breakMin*60000});
+  }
+  return out;
+}
+function allAt(L,unit){return games().every(g=>vals(structOf(g,L,false)).every(v=>v%unit===0));}
+function firstLevel(unit){const lv=seq().filter(x=>x.kind==='lv');let f=null;for(let i=lv.length-1;i>=0;i--){if(allAt(lv[i].L,unit))f=lv[i].n;else break;}return f;}
+function levelGame(n){const gs=games();if(!gs.length)return null;return gs[((n-1+S.gameIdx)%gs.length+gs.length)%gs.length];}
+function curGame(){
+  const gs=games();if(!gs.length)return null;
+  if(st.mode==='tour'&&st.tourRot==='level'){const q=seq();const it=q[S.pos];const n=it.kind==='lv'?it.n:((q[S.pos+1]||{}).n||1);return levelGame(n);}
+  return gs[((S.gameIdx%gs.length)+gs.length)%gs.length];
+}
+function rotMs(){return(st.mode==='ring'?st.ringRotMin:st.tourRotMin)*60000;}
+function rotTimed(){return st.mode==='ring'?st.ringRot==='time':st.tourRot==='time';}
+function rotHands(){return st.mode==='ring'?st.ringRot==='hands':st.tourRot==='hands';}
+function handsN(){return Math.max(1,+(st.mode==='ring'?st.ringHands:st.tourHands)||8);}
+const nextG=()=>{const gs=games();return gs[((S.gameIdx+1)%gs.length+gs.length)%gs.length];};
+function tapSound(up){
+  if(!ac)return;
+  try{
+    const t=ac.currentTime;
+    // short wooden "chip click" + soft tone
+    const len=Math.floor(ac.sampleRate*.04),buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,4);
+    const n=ac.createBufferSource(),f=ac.createBiquadFilter(),ng=ac.createGain();
+    n.buffer=buf;f.type='bandpass';f.frequency.value=up?2600:1400;f.Q.value=1.2;ng.gain.value=.6;
+    n.connect(f);f.connect(ng);ng.connect(ac.destination);n.start(t);
+    const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';
+    o.frequency.setValueAtTime(up?1046:523,t);o.frequency.exponentialRampToValueAtTime(up?1568:392,t+.08);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+.15);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.16);
+  }catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(up?25:[15,40,15]);}catch(e){}
+}
+function handDone(d){
+  if(!rotHands()||!games().length)return;
+  audio();
+  if(d<0&&!(S.handCount>0))return;
+  tapSound(d>0);
+  S.handCount=Math.max(0,(S.handCount||0)+d);
+  if(S.handCount>=handsN()){S.handCount=0;S.gameIdx++;S.gameElapsed=0;chime(2);}
+  save();renderAll();
+}
+function resetClock(){
+  S.pos=0;S.running=false;S.gameIdx=0;S.gameElapsed=0;S.warned=false;S.handCount=0;
+  S.remain=st.mode==='tour'?seq()[0].ms:null;
+  S.gameRemain=rotTimed()?rotMs():null;
+  releaseWake();save();renderAll();
+}
+
+/* ticking (wall-clock based, so a sleeping tab catches up) */
+function tick(){
+  if(!S.running){renderClock();return;}
+  const now=Date.now();let dt=now-S.last;S.last=now;if(dt<0)dt=0;
+  while(dt>0&&S.running){
+    const q=seq();const it=st.mode==='tour'?q[S.pos]:null;
+    let step=dt;
+    if(it)step=Math.min(step,S.remain);
+    const gameTicks=rotTimed()&&(!it||it.kind==='lv');
+    if(gameTicks)step=Math.min(step,S.gameRemain);
+    if(it)S.remain-=step;
+    if(gameTicks)S.gameRemain-=step;else if(!rotTimed())S.gameElapsed+=step;
+    dt-=step;
+    if(gameTicks&&S.gameRemain<=0){S.gameIdx++;S.gameRemain=rotMs();chime(2);}
+    if(it&&S.remain<=0){
+      if(S.pos>=q.length-1){S.remain=0;S.running=false;chime(3);break;}
+      moveLevel(1,true);chime(3);
+    }
+    if(step<=0&&dt>0)break;
+  }
+  const left=st.mode==='tour'?S.remain:(rotTimed()?S.gameRemain:null);
+  if(left!=null&&left<=60000&&left>0&&!S.warned){S.warned=true;chime(1);}
+  save();renderClock();
+}
+function moveLevel(d,auto){
+  const q=seq();const np=Math.min(Math.max(S.pos+d,0),q.length-1);
+  if(np===S.pos)return;
+  S.pos=np;S.remain=q[np].ms;S.warned=false;
+  if(!auto)save();
+}
+
+/* sound & screen */
+let ac=null;
+function audio(){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();}catch(e){}}
+function chime(n){
+  if(!ac)return;
+  for(let i=0;i<n;i++){
+    try{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=n===1?660:880;
+      const t=ac.currentTime+i*.32;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.28);
+      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.3);}catch(e){}
+  }
+}
+let wake=null;
+async function holdWake(){try{if('wakeLock' in navigator)wake=await navigator.wakeLock.request('screen');}catch(e){}}
+function releaseWake(){try{wake&&wake.release();}catch(e){}wake=null;}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(S.running)holdWake();tick();}});
+
+/* rendering */
+const $=id=>document.getElementById(id);
+const fmt=ms=>{ms=Math.max(0,Math.ceil(ms/1000));const h=Math.floor(ms/3600),m=Math.floor(ms%3600/60),s=ms%60;return(h?h+':'+String(m).padStart(2,'0'):m)+':'+String(s).padStart(2,'0');};
+
+function renderClock(){
+  const gs=games();
+  $('m-tour').setAttribute('aria-pressed',st.mode==='tour');$('m-ring').setAttribute('aria-pressed',st.mode==='ring');
+  $('b-run').textContent=S.running?'一時停止':'スタート';
+  $('b-prev').hidden=$('b-next').hidden=st.mode!=='tour';
+  const hm=rotHands()&&gs.length>0;
+  $('b-hand').hidden=$('b-handundo').hidden=!hm;
+  const hc=S.handCount||0,hn=handsN();
+  $('hands').hidden=!hm;
+  if(hm)$('hands').innerHTML=`ハンド <b>${hc}/${hn}</b><span class="pips">${Array.from({length:hn},(_,i)=>`<i class="pip${i<hc?' on':''}"></i>`).join('')}</span>`;
+  const handTxt=hm&&gs.length>1?`あと${hn-hc}ハンドで <b>${GAMES[nextG()].name}</b>`:'';
+  if(!gs.length){$('game').textContent='ゲームを選んでください';$('struct').innerHTML='';$('kind').textContent='';$('time').textContent='--:--';$('next').textContent='';$('eyebrow').textContent='';$('notice').textContent='';return;}
+  const clock=$('clock');
+  if(st.mode==='ring'){
+    clock.classList.remove('break');
+    const g=curGame(),s=structOf(g,st.ringL,true);
+    $('eyebrow').textContent=`リング ・ ゲーム ${((S.gameIdx%gs.length)+gs.length)%gs.length+1}/${gs.length}`;
+    showGame(g,s);
+    const ms=rotTimed()?S.gameRemain:S.gameElapsed;
+    setTime(ms,rotTimed());
+    const ng=nextG();
+    $('next').innerHTML=gs.length>1?(rotHands()?`${handTxt} ${short(ng,structOf(ng,st.ringL,true))}(時計はこのゲームの経過時間)`:`次: <b>${GAMES[ng].name}</b> ${short(ng,structOf(ng,st.ringL,true))}${rotTimed()?'':'(手動で切り替え・時計は経過時間)'}`):'';
+    $('notice').textContent='';
+    return;
+  }
+  const q=seq(),it=q[S.pos];
+  const nextLv=q.slice(S.pos+1).find(x=>x.kind==='lv');
+  const lvAhead=(()=>{let c=0;for(let i=S.pos+1;i<q.length;i++){if(q[i].kind==='br')return c;if(q[i].kind==='lv')c++;}return null;})();
+  if(it.kind==='br'){
+    clock.classList.add('break');
+    $('eyebrow').textContent='休憩';
+    $('game').textContent='Break';$('kind').textContent='';$('struct').innerHTML='';
+    setTime(S.remain,true);
+    $('hands').hidden=true;
+    if(nextLv){const g=levelGameAt(nextLv);$('next').innerHTML=`再開: レベル ${nextLv.n} <b>${GAMES[g].name}</b> ${short(g,structOf(g,nextLv.L,false))}`;}
+    const c5=firstLevel(25),c25=firstLevel(100);
+    let note='';
+    if(nextLv&&c5&&nextLv.n>=c5&&!(q[S.pos-1]&&q[S.pos-1].n>=c5))note='この休憩で5点チップをカラーアップ(25点に交換)';
+    else if(nextLv&&c25&&nextLv.n>=c25&&!(q[S.pos-1]&&q[S.pos-1].n>=c25))note='この休憩で25点チップをカラーアップ(100点に交換)';
+    $('notice').textContent=note;
+    return;
+  }
+  clock.classList.remove('break');
+  const g=levelGameAt(it);
+  $('eyebrow').textContent=`レベル ${it.n}`+(lvAhead!=null&&st.breakEvery>0?` ・ 休憩まで あと${lvAhead}レベル`:'');
+  showGame(g,structOf(g,it.L,false));
+  setTime(S.remain,true);
+  let nx='';
+  if(st.tourRot==='time'&&gs.length>1){nx=`${fmt(S.gameRemain)}後に <b>${GAMES[nextG()].name}</b> ・ `;}
+  if(handTxt)nx=handTxt+' ・ ';
+  const after=q[S.pos+1];
+  if(after){if(after.kind==='br')nx+=`このレベルの後は休憩 ${st.breakMin}分`;else{const ng=levelGameAt(after);nx+=`次のレベル: <b>${GAMES[ng].name}</b> ${short(ng,structOf(ng,after.L,false))}`;}}
+  else nx+='最終レベル';
+  $('next').innerHTML=nx;
+  const c5=firstLevel(25);
+  $('notice').textContent=c5&&it.n>=c5?'5点チップは不要です':'';
+}
+function levelGameAt(it){return st.tourRot==='level'?levelGame(it.n):curGame();}
+function showGame(g,s){
+  $('game').textContent=GAMES[g].name;$('kind').textContent=GAMES[g].kind;
+  $('struct').innerHTML=cells(g,s).map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');
+}
+function setTime(ms,countdown){
+  const t=$('time');t.textContent=fmt(ms);
+  t.classList.toggle('warn',countdown&&ms<=60000&&S.running);
+  t.classList.toggle('paused',!S.running);
+}
+function renderGames(){
+  const cur=curGame();
+  $('games').innerHTML=st.order.map((g,i)=>`<div class="grow"><label><input type="checkbox" data-g="${g}"${st.on.includes(g)?' checked':''}> ${g===cur?'▶ ':''}${GAMES[g].name} <small>${GAMES[g].kind}</small></label><button class="mini" data-up="${i}" aria-label="${GAMES[g].name}を上へ"${i===0?' disabled':''}>↑</button><button class="mini" data-down="${i}" aria-label="${GAMES[g].name}を下へ"${i===st.order.length-1?' disabled':''}>↓</button></div>`).join('');
+  const c5=st.mode==='tour'?firstLevel(25):null,c25=st.mode==='tour'?firstLevel(100):null;
+  const curN=st.mode==='tour'?(seq()[S.pos].n||0):0;
+  $('chips').innerHTML=`<span class="chip${c5&&curN>=c5?' gone':''}"><i class="dot d5"></i>5点</span><span class="chip${c25&&curN>=c25?' gone':''}"><i class="dot d25"></i>25点</span><span class="chip"><i class="dot d100"></i>100点</span><span>すべての額をこの3種類で払える単位にそろえています</span>`;
+}
+function opt(list,v,lab=x=>x){return list.map(x=>`<option value="${x}"${String(x)===String(v)?' selected':''}>${lab(x)}</option>`).join('');}
+function renderSetup(){
+  const el=$('setup');
+  if(st.mode==='ring'){
+    el.innerHTML=`<h2>リングの設定</h2>
+    <div class="fields">
+      <label class="field">基準のステークス(リミットの額)<select id="s-ringL">${opt([10,20,40,60,100,200,400],st.ringL,x=>`${x}/${x*2}`)}</select></label>
+      <label class="field">ゲームの切り替え<select id="s-ringRot">${opt(['time','hands','manual'],st.ringRot,x=>({time:'時間で自動',hands:'ハンド数ごと',manual:'手動(1周ごとなど)'})[x])}</select></label>
+      ${st.ringRot==='hands'?`<label class="field">切り替えハンド数<input type="number" id="s-ringHands" min="1" max="50" value="${st.ringHands}"></label>`:`<label class="field">切り替え間隔(分)<input type="number" id="s-ringRotMin" min="1" max="120" value="${st.ringRotMin}"${st.ringRot==='time'?'':' disabled'}></label>`}
+    </div>
+    <p class="sub">おすすめ：ハンド数を「卓の人数」にすると、全員が1回ずつボタンを回ってから次のゲームに変わります。1ハンド終わるたびに「ハンド終了 +1」を押してください。下の表の数字は直接書き換えられます(5の倍数にそろえます)。</p>`;
+  }else{
+    el.innerHTML=`<h2>トーナメントの設定</h2>
+    <div class="fields">
+      <label class="field">最初のレベル(リミットの額)<select id="s-tourStartL">${opt(LADDER.slice(0,13),st.tourStartL,x=>`${x}/${x*2}`)}</select></label>
+      <label class="field">1レベルの時間(分)<input type="number" id="s-lvlMin" min="1" max="120" value="${st.lvlMin}"></label>
+      <label class="field">休憩の頻度<select id="s-breakEvery">${opt([0,2,3,4,5,6],st.breakEvery,x=>x?`${x}レベルごと`:'なし')}</select></label>
+      <label class="field">休憩の長さ(分)<input type="number" id="s-breakMin" min="1" max="60" value="${st.breakMin}"${st.breakEvery?'':' disabled'}></label>
+      <label class="field">ゲームの切り替え<select id="s-tourRot">${opt(['level','hands','time','manual'],st.tourRot,x=>({level:'レベルごと',hands:'ハンド数ごと',time:'時間で自動',manual:'手動'})[x])}</select></label>
+      ${st.tourRot==='hands'?`<label class="field">切り替えハンド数<input type="number" id="s-tourHands" min="1" max="50" value="${st.tourHands}"></label>`:`<label class="field">切り替え間隔(分)<input type="number" id="s-tourRotMin" min="1" max="120" value="${st.tourRotMin}"${st.tourRot==='time'?'':' disabled'}></label>`}
+    </div>
+    <p class="sub">設定を変えると時計はレベル1に戻ります。</p>`;
+  }
+}
+function renderSheet(){
+  const gs=games();const el=$('sheet');
+  if(!gs.length){el.innerHTML='<p class="sub">ゲームを1つ以上選ぶと表が出ます。</p>';return;}
+  if(st.mode==='ring'){
+    $('sheet-title').textContent='リングのストラクチャー';
+    $('sheet-sub').innerHTML=`数字をタップして変更できます。 <button class="btn" id="b-std" style="padding:4px 10px;font-size:.8rem;min-width:0">20/40のおすすめ値に戻す</button>`;
+    el.innerHTML=`<table class="ring"><thead><tr><th>ゲーム</th><th>内容</th></tr></thead><tbody>`+gs.map(g=>{
+      const s=structOf(g,st.ringL,true);
+      const ins=FIELDS[GAMES[g].type].map(([k,lab])=>`<label class="field" style="display:inline-flex;margin-right:10px">${lab}<input type="number" step="5" min="5" data-cg="${g}" data-ck="${k}" value="${s[k]}"></label>`).join('');
+      return `<tr><td class="play">${GAMES[g].name}</td><td>${ins}</td></tr>`;}).join('')+`</tbody></table>`;
+    return;
+  }
+  $('sheet-title').textContent='トーナメントのストラクチャー表';
+  $('sheet-sub').textContent=st.tourRot==='level'?'太字がそのレベルで行うゲームです。':'各レベルで全ゲーム共通のステークスです。';
+  const q=seq(),c5=firstLevel(25),c25=firstLevel(100);
+  let t=0;
+  el.innerHTML=`<table><thead><tr><th>レベル</th><th>開始</th>${gs.map(g=>`<th>${GAMES[g].name}</th>`).join('')}</tr></thead><tbody>`+
+    q.map((it,i)=>{
+      const start=fmt(t);t+=it.ms;
+      const cur=i===S.pos?' class="cur"':'';
+      if(it.kind==='br')return `<tr class="brk${i===S.pos?' cur':''}"><td>休憩</td><td class="num">${start}</td><td colspan="${gs.length}">${st.breakMin}分</td></tr>`;
+      const play=st.tourRot==='level'?levelGame(it.n):null;
+      const tags=(it.n===c5?'<span class="tag">5点チップ不要</span>':'')+(it.n===c25?'<span class="tag">25点チップ不要</span>':'');
+      return `<tr${cur}><td class="num">${it.n}${tags}</td><td class="num">${start}</td>${gs.map(g=>`<td class="num ${play?(g===play?'play':'idle'):''}">${short(g,structOf(g,it.L,false))}</td>`).join('')}</tr>`;
+    }).join('')+`</tbody></table>`;
+}
+function renderAll(){renderClock();renderGames();renderSetup();renderSheet();}
+
+/* events */
+function toggleRun(){
+  audio();
+  if(!games().length)return;
+  S.running=!S.running;S.last=Date.now();
+  if(S.running)holdWake();else releaseWake();
+  save();renderClock();
+}
+$('b-run').onclick=toggleRun;
+$('b-plus').onclick=()=>adjust(60000);
+$('b-minus').onclick=()=>adjust(-60000);
+function adjust(d){
+  if(st.mode==='tour')S.remain=Math.max(1000,S.remain+d);
+  else if(rotTimed())S.gameRemain=Math.max(1000,S.gameRemain+d);
+  else S.gameElapsed=Math.max(0,S.gameElapsed+d);
+  if((st.mode==='tour'?S.remain:S.gameRemain)>60000)S.warned=false;
+  save();renderClock();
+}
+$('b-prev').onclick=()=>{moveLevel(-1);renderAll();};
+$('b-next').onclick=()=>{moveLevel(1);renderAll();};
+$('b-game').onclick=nextGameManual;
+$('b-hand').onclick=()=>handDone(1);
+$('b-handundo').onclick=()=>handDone(-1);
+function nextGameManual(){S.gameIdx++;S.gameElapsed=0;S.handCount=0;if(rotTimed())S.gameRemain=rotMs();save();renderAll();}
+$('b-reset').onclick=()=>{const b=$('b-reset');if(b.dataset.armed){delete b.dataset.armed;b.textContent='リセット';resetClock();}else{b.dataset.armed='1';b.textContent='本当にリセット?';setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent='リセット';}},3000);}};
+$('b-full').onclick=()=>{try{const d=document;if(d.fullscreenElement)d.exitFullscreen();else d.documentElement.requestFullscreen().catch(()=>{});}catch(e){}};
+$('b-ten').onclick=()=>{st.order=[...TEN];st.on=[...TEN];resetClock();};
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{if(st.mode===b.dataset.mode)return;st.mode=b.dataset.mode;resetClock();});
+
+$('games').addEventListener('change',e=>{const g=e.target.dataset.g;if(!g)return;st.on=e.target.checked?[...st.on,g]:st.on.filter(x=>x!==g);settingsChanged();});
+$('games').addEventListener('click',e=>{const u=e.target.dataset.up,d=e.target.dataset.down;const i=u!=null?+u:d!=null?+d:null;if(i==null)return;const j=u!=null?i-1:i+1;[st.order[i],st.order[j]]=[st.order[j],st.order[i]];settingsChanged();});
+$('setup').addEventListener('change',e=>{
+  const id=e.target.id;if(!id.startsWith('s-'))return;const k=id.slice(2);
+  let v=e.target.value;if(e.target.type==='number'||/L$|Every/.test(k))v=Math.max(+e.target.min||0,Math.min(+e.target.max||1e9,Math.round(+v)||0));
+  if(k==='ringL')st.custom=+v===20?structuredClone(STUD_BI10):{};
+  st[k]=v;settingsChanged();
+});
+document.addEventListener('click',e=>{if(e.target.id==='b-std'){st.ringL=20;st.custom=structuredClone(STUD_BI10);save();renderAll();}});
+$('sheet').addEventListener('change',e=>{
+  const g=e.target.dataset.cg,k=e.target.dataset.ck;if(!g)return;
+  let v=Math.max(5,Math.round((+e.target.value||5)/5)*5);
+  st.custom[g]={...(st.custom[g]||{}),[k]:v};save();renderClock();renderSheet();
+});
+function settingsChanged(){
+  if(st.mode==='tour'){resetClock();}
+  else{if(rotTimed()&&S.gameRemain==null)S.gameRemain=rotMs();save();renderAll();}
+}
+document.addEventListener('keydown',e=>{
+  if(e.target.closest('input,select,button')&&e.key!=='Escape')return;
+  if(e.key===' '){e.preventDefault();toggleRun();}
+  else if(e.key==='ArrowRight'&&st.mode==='tour'){moveLevel(1);renderAll();}
+  else if(e.key==='ArrowLeft'&&st.mode==='tour'){moveLevel(-1);renderAll();}
+  else if(e.key.toLowerCase()==='g')nextGameManual();
+  else if(e.key.toLowerCase()==='h')handDone(1);
+});
+
+/* start */
+if(S.remain==null&&st.mode==='tour')S.remain=seq()[0].ms;
+if(rotTimed()&&S.gameRemain==null)S.gameRemain=rotMs();
+if(st.mode==='tour'&&S.pos>=seq().length)S.pos=0;
+if(S.running)holdWake();
+renderAll();tick();
+setInterval(tick,250);
+</script>
+<script src="site.js"></script>
+</body>
+</html>
